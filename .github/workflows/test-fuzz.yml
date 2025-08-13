@@ -24,10 +24,30 @@ jobs:
       run:
         working-directory: clients/python
     steps:
+      - name: Get PR details
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const pr = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: ${{ github.event.inputs.pr_number }}
+              });
+              return {
+                sha: pr.data.head.sha,
+                ref: pr.data.head.ref
+              };
+            } catch (error) {
+              console.log(`Error fetching PR #${{ github.event.inputs.pr_number }}: ${error.message}`);
+              throw error;
+            }
+
       - name: Checkout PR
         uses: actions/checkout@v4
         with:
-          ref: pull/${{ github.event.inputs.pr_number }}/head
+          ref: ${{ fromJson(steps.pr.outputs.result).sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
